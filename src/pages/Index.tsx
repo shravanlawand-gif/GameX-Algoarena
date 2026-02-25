@@ -5,6 +5,7 @@ import heroBg from "@/assets/hero-bg.png";
 import ParticleField from "@/components/game/ParticleField";
 import CinematicIntro from "@/components/game/CinematicIntro";
 import RobotCompanion from "@/components/game/RobotCompanion";
+import AnimatedRobot from "@/components/game/AnimatedRobot";
 import GlowButton from "@/components/game/GlowButton";
 
 const Index = () => {
@@ -12,6 +13,7 @@ const Index = () => {
   const [introComplete, setIntroComplete] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
+  const [robotMood, setRobotMood] = useState<"idle" | "happy" | "excited">("idle");
 
   useEffect(() => {
     if (introComplete) {
@@ -24,12 +26,9 @@ const Index = () => {
     <div className="min-h-screen bg-background relative overflow-hidden flex flex-col items-center justify-center">
       {/* Cinematic Intro */}
       <AnimatePresence>
-        {!introComplete && (
-          <CinematicIntro onComplete={() => setIntroComplete(true)} />
-        )}
+        {!introComplete && <CinematicIntro onComplete={() => setIntroComplete(true)} />}
       </AnimatePresence>
 
-      {/* Particles */}
       <ParticleField variant="ambient" />
 
       {/* Background layers */}
@@ -37,24 +36,20 @@ const Index = () => {
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url(${heroBg})` }}
         initial={{ opacity: 0, scale: 1.1 }}
-        animate={showContent ? { opacity: 0.3, scale: 1 } : {}}
+        animate={showContent ? { opacity: 0.25, scale: 1 } : {}}
         transition={{ duration: 2, ease: "easeOut" }}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/20" />
 
-      {/* Floating light rays */}
-      <motion.div
-        className="absolute top-0 left-1/4 w-px h-full pointer-events-none"
-        style={{ background: "linear-gradient(180deg, hsl(195 100% 50% / 0.15), transparent 60%)" }}
-        animate={{ opacity: [0.3, 0.8, 0.3], x: [-20, 20, -20] }}
-        transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute top-0 right-1/3 w-px h-full pointer-events-none"
-        style={{ background: "linear-gradient(180deg, hsl(25 95% 55% / 0.1), transparent 50%)" }}
-        animate={{ opacity: [0.2, 0.6, 0.2], x: [10, -10, 10] }}
-        transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 2 }}
-      />
+      {/* Light rays */}
+      <motion.div className="absolute top-0 left-1/4 w-px h-full pointer-events-none"
+        style={{ background: "linear-gradient(180deg, hsl(195 100% 50% / 0.1), transparent 50%)" }}
+        animate={{ opacity: [0.2, 0.6, 0.2], x: [-30, 30, -30] }}
+        transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }} />
+      <motion.div className="absolute top-0 right-1/3 w-px h-full pointer-events-none"
+        style={{ background: "linear-gradient(180deg, hsl(25 95% 55% / 0.08), transparent 40%)" }}
+        animate={{ opacity: [0.1, 0.4, 0.1], x: [15, -15, 15] }}
+        transition={{ repeat: Infinity, duration: 7, ease: "easeInOut", delay: 2 }} />
 
       {/* Content */}
       <AnimatePresence>
@@ -65,11 +60,23 @@ const Index = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 1 }}
           >
+            {/* Hero Robot */}
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="mx-auto mb-6"
+              onMouseEnter={() => setRobotMood("excited")}
+              onMouseLeave={() => setRobotMood("idle")}
+            >
+              <AnimatedRobot mood={robotMood} size={130} variant="player" />
+            </motion.div>
+
             {/* Title */}
             <motion.h1
-              initial={{ y: -30, opacity: 0, scale: 0.95 }}
-              animate={{ y: 0, opacity: 1, scale: 1 }}
-              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+              initial={{ y: -30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
               className="font-display text-5xl md:text-7xl lg:text-8xl tracking-widest text-primary mb-2"
               style={{ textShadow: "0 0 40px hsl(195 100% 50% / 0.5), 0 0 80px hsl(195 100% 50% / 0.2)" }}
             >
@@ -78,17 +85,16 @@ const Index = () => {
             <motion.h2
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
               className="font-display text-2xl md:text-4xl tracking-[0.4em] text-secondary mb-4"
               style={{ textShadow: "0 0 30px hsl(25 95% 55% / 0.4)" }}
             >
               BATTLES
             </motion.h2>
 
-            {/* Animated subtitle line */}
             <motion.div
               className="mx-auto mb-8 h-px"
-              style={{ background: "linear-gradient(90deg, transparent, hsl(195 100% 50% / 0.6), transparent)" }}
+              style={{ background: "linear-gradient(90deg, transparent, hsl(195 100% 50% / 0.5), transparent)" }}
               initial={{ width: 0 }}
               animate={{ width: "80%" }}
               transition={{ delay: 0.6, duration: 1.2 }}
@@ -103,7 +109,7 @@ const Index = () => {
               Write code. Defeat robots. Steal their skills.
             </motion.p>
 
-            {/* CTA Buttons */}
+            {/* CTA */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -118,11 +124,11 @@ const Index = () => {
               </GlowButton>
             </motion.div>
 
-            {/* Language Cards */}
+            {/* Language cards */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.3 }}
+              transition={{ delay: 1.2 }}
               className="grid grid-cols-3 gap-4 max-w-sm mx-auto mb-10"
             >
               {[
@@ -135,20 +141,18 @@ const Index = () => {
                   className="relative text-center arena-panel p-4 rounded-lg cursor-pointer overflow-hidden"
                   style={{
                     borderColor: hovered === item.id ? "hsl(195 100% 50% / 0.5)" : undefined,
-                    boxShadow: hovered === item.id ? "0 0 20px hsl(195 100% 50% / 0.2), inset 0 0 20px hsl(195 100% 50% / 0.05)" : undefined,
+                    boxShadow: hovered === item.id ? "0 0 20px hsl(195 100% 50% / 0.2)" : undefined,
                   }}
-                  onMouseEnter={() => setHovered(item.id)}
-                  onMouseLeave={() => setHovered(null)}
+                  onMouseEnter={() => { setHovered(item.id); setRobotMood("happy"); }}
+                  onMouseLeave={() => { setHovered(null); setRobotMood("idle"); }}
                   whileHover={{ y: -4, scale: 1.03 }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.4 + i * 0.1, duration: 0.5 }}
+                  transition={{ delay: 1.3 + i * 0.1 }}
                 >
-                  <motion.span
-                    className="text-3xl block mb-2"
+                  <motion.span className="text-3xl block mb-2"
                     animate={{ y: [0, -3, 0] }}
-                    transition={{ repeat: Infinity, duration: 2, delay: i * 0.3 }}
-                  >
+                    transition={{ repeat: Infinity, duration: 2, delay: i * 0.3 }}>
                     {item.icon}
                   </motion.span>
                   <span className="text-xs text-muted-foreground font-display tracking-wider">{item.label}</span>
@@ -160,13 +164,14 @@ const Index = () => {
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 1.8 }}
+              transition={{ delay: 1.6 }}
               className="flex justify-center"
             >
               <RobotCompanion
                 playerName="Commander"
                 mood="idle"
-                message="Welcome, Commander! Ready to enter the arena? 🤖"
+                message="Welcome to the arena, Commander! Choose your language and let's fight! 🤖"
+                size="md"
               />
             </motion.div>
           </motion.div>

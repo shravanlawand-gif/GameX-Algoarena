@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import HealthBar from "./HealthBar";
 import ParticleField from "./ParticleField";
 import RobotCompanion from "./RobotCompanion";
+import AnimatedRobot from "./AnimatedRobot";
 import GlowButton from "./GlowButton";
 import { getAIChallenge, stolenCodeRewards, type Challenge } from "@/data/challenges";
-import playerRobotImg from "@/assets/player-robot.png";
-import aiRobotImg from "@/assets/ai-robot.png";
+import type { RobotMood } from "./AnimatedRobot";
 
 interface BattleArenaProps {
   language: "python" | "sql" | "cpp";
@@ -23,8 +23,8 @@ const aiDamageRange = { easy: [5, 10], medium: [8, 15], hard: [12, 20] };
 const SparkParticles = ({ side, color }: { side: "left" | "right"; color: "cyan" | "orange" }) => {
   const sparks = useMemo(() => Array.from({ length: 14 }).map((_, i) => ({
     id: i,
-    x: (Math.random() - 0.5) * 140,
-    y: (Math.random() - 0.5) * 140,
+    x: (Math.random() - 0.5) * 160,
+    y: (Math.random() - 0.5) * 160,
     size: Math.random() * 6 + 2,
     delay: Math.random() * 0.15,
     rotation: Math.random() * 360,
@@ -52,19 +52,8 @@ const EnergyBeam = ({ direction }: { direction: "left-to-right" | "right-to-left
     className={`absolute top-1/2 -translate-y-1/2 rounded-full ${direction === "right-to-left" ? "energy-beam-orange" : "energy-beam"}`}
     style={{ [direction === "left-to-right" ? "left" : "right"]: "25%", zIndex: 35, height: "3px" }}
     initial={{ width: 0, opacity: 0 }}
-    animate={{ width: "50%", opacity: [0, 1, 1, 0], height: ["3px", "6px", "3px"] }}
+    animate={{ width: "50%", opacity: [0, 1, 1, 0], height: ["3px", "8px", "3px"] }}
     transition={{ duration: 0.5, ease: "easeInOut" }}
-  />
-);
-
-/* ---------- Shield Effect ---------- */
-const ShieldEffect = () => (
-  <motion.div
-    className="absolute inset-0 shield-bubble"
-    style={{ zIndex: 25 }}
-    initial={{ scale: 0.8, opacity: 0 }}
-    animate={{ scale: [0.8, 1.1, 1], opacity: [0, 0.6, 0] }}
-    transition={{ duration: 0.8 }}
   />
 );
 
@@ -81,15 +70,14 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [failCount, setFailCount] = useState(0);
   const [showHint, setShowHint] = useState(false);
-  const [robotMood, setRobotMood] = useState<"idle" | "happy" | "encouraging" | "celebrating" | "worried" | "thinking">("idle");
+  const [robotMood, setRobotMood] = useState<RobotMood>("idle");
   const [robotMsg, setRobotMsg] = useState("Systems online. Scanning opponent... 🤖");
+  const [playerRobotMood, setPlayerRobotMood] = useState<RobotMood>("idle");
+  const [aiRobotMood, setAiRobotMood] = useState<RobotMood>("idle");
 
   // Animation states
-  const [playerAnim, setPlayerAnim] = useState("");
-  const [aiAnim, setAiAnim] = useState("");
   const [showBeam, setShowBeam] = useState<"left-to-right" | "right-to-left" | null>(null);
   const [showSparks, setShowSparks] = useState<{ side: "left" | "right"; color: "cyan" | "orange" } | null>(null);
-  const [showShield, setShowShield] = useState<"player" | "ai" | null>(null);
   const [screenShake, setScreenShake] = useState(false);
 
   const addLog = useCallback((msg: string) => {
@@ -99,9 +87,12 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
   // Battle intro
   useEffect(() => {
     if (phase === "intro") {
+      setPlayerRobotMood("thinking");
+      setAiRobotMood("idle");
       const t = setTimeout(() => {
         setRobotMsg("Enemy detected! Prepare for combat! ⚡");
         setRobotMood("worried");
+        setAiRobotMood("excited");
         setTimeout(() => setPhase("ai-attack"), 1500);
       }, 1500);
       return () => clearTimeout(t);
@@ -115,20 +106,20 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
       const [min, max] = aiDamageRange[difficulty];
       const dmg = Math.floor(Math.random() * (max - min + 1)) + min;
 
-      setAiAnim("animate-charge-up");
+      setAiRobotMood("excited");
       setTimeout(() => {
         setShowBeam("right-to-left");
-        setAiAnim("animate-dash-left");
         setTimeout(() => {
           setShowBeam(null);
           setShowSparks({ side: "left", color: "orange" });
-          setPlayerAnim("animate-recoil");
+          setPlayerRobotMood("worried");
           setScreenShake(true);
           setPlayerHP(prev => {
             const newHP = Math.max(0, prev - dmg);
             if (newHP <= 0) {
               setRobotMood("worried");
               setRobotMsg("No... our systems are failing! 💔");
+              setPlayerRobotMood("confused");
               setTimeout(() => setPhase("defeat"), 800);
             }
             return newHP;
@@ -140,8 +131,8 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
           }
 
           setTimeout(() => {
-            setPlayerAnim("");
-            setAiAnim("");
+            setAiRobotMood("idle");
+            setPlayerRobotMood("idle");
             setShowSparks(null);
             setScreenShake(false);
             if (playerHP - dmg > 0) {
@@ -156,7 +147,7 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
             }
           }, 700);
         }, 400);
-      }, 500);
+      }, 600);
     }, 1000);
     return () => clearTimeout(timer);
   }, [phase, difficulty, language, addLog, playerHP, maxPlayerHP]);
@@ -168,14 +159,13 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
     if (isCorrect) {
       setRobotMood("happy");
       setRobotMsg("Perfect code! Firing weapons! 🔥");
-      setPlayerAnim("animate-charge-up");
+      setPlayerRobotMood("excited");
       setTimeout(() => {
         setShowBeam("left-to-right");
-        setPlayerAnim("animate-dash-right");
         setTimeout(() => {
           setShowBeam(null);
           setShowSparks({ side: "right", color: "cyan" });
-          setAiAnim("animate-recoil-left");
+          setAiRobotMood("worried");
           setScreenShake(true);
           setAiHP(prev => {
             const newHP = Math.max(0, prev - challenge.damage);
@@ -183,19 +173,24 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
             if (newHP <= 0) {
               setRobotMood("celebrating");
               setRobotMsg("VICTORY! Enemy destroyed! 🏆🎉");
+              setPlayerRobotMood("celebrating");
+              setAiRobotMood("confused");
               const rewards = stolenCodeRewards[language];
               const reward = rewards[Math.floor(Math.random() * rewards.length)];
               setTimeout(() => onVictory(reward), 1200);
             } else {
               setRobotMood("encouraging");
               setRobotMsg("Great hit! Keep the pressure on! 💪");
-              setTimeout(() => setPhase("ai-attack"), 800);
+              setPlayerRobotMood("happy");
+              setTimeout(() => {
+                setPlayerRobotMood("idle");
+                setAiRobotMood("idle");
+                setPhase("ai-attack");
+              }, 800);
             }
             return newHP;
           });
           setTimeout(() => {
-            setPlayerAnim("");
-            setAiAnim("");
             setShowSparks(null);
             setScreenShake(false);
           }, 600);
@@ -204,8 +199,8 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
       setFailCount(0);
     } else {
       addLog("❌ Wrong answer! You take 5 damage.");
-      setPlayerAnim("animate-damage-flash");
-      setShowShield("ai");
+      setPlayerRobotMood("confused");
+      setAiRobotMood("happy");
       setPlayerHP(prev => Math.max(0, prev - 5));
       setRobotMood("encouraging");
       setRobotMsg(failCount >= 1 ? "Here's a hint to help! Don't give up! 💡" : "Not quite! Try again, you're close! 🤔");
@@ -213,7 +208,10 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
         if (prev + 1 >= 2) setShowHint(true);
         return prev + 1;
       });
-      setTimeout(() => { setPlayerAnim(""); setShowShield(null); }, 600);
+      setTimeout(() => {
+        setPlayerRobotMood("idle");
+        setAiRobotMood("idle");
+      }, 800);
       setAnswer("");
     }
   };
@@ -229,7 +227,6 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
         className="text-center mb-4 relative z-10"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6 }}
       >
         <h1 className="font-display text-2xl md:text-3xl text-primary tracking-widest"
           style={{ textShadow: "0 0 30px hsl(195 100% 50% / 0.4)" }}>
@@ -243,7 +240,8 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
       {/* Battle Area */}
       <div className="flex-1 max-w-5xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-4 relative z-10">
         {/* Arena Panel */}
-        <div className="lg:col-span-2 arena-panel p-4 flex flex-col" style={{ boxShadow: "0 0 30px hsl(195 100% 50% / 0.05)" }}>
+        <div className="lg:col-span-2 arena-panel p-4 flex flex-col"
+          style={{ boxShadow: "0 0 30px hsl(195 100% 50% / 0.05)" }}>
           {/* Health Bars */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <HealthBar current={playerHP} max={maxPlayerHP} label={langLabel} variant="player" />
@@ -252,8 +250,8 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
 
           {/* Robot Battle View */}
           <motion.div
-            className="flex-1 flex items-center justify-between relative min-h-[260px] rounded-lg bg-arena overflow-hidden arena-grid-floor px-8"
-            animate={screenShake ? { x: [0, -8, 8, -5, 5, 0], y: [0, 4, -4, 2, -2, 0] } : {}}
+            className="flex-1 flex items-center justify-between relative min-h-[280px] rounded-lg bg-arena overflow-hidden arena-grid-floor px-6"
+            animate={screenShake ? { x: [0, -10, 10, -6, 6, 0], y: [0, 5, -5, 3, -3, 0] } : {}}
             transition={{ duration: 0.4 }}
           >
             <div className="scanline absolute inset-0 pointer-events-none z-10" />
@@ -266,11 +264,7 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
               transition={{ repeat: Infinity, duration: 3 }}
             />
 
-            {/* Thruster trails */}
-            <div className="absolute bottom-4 left-[15%] w-16 h-1 rounded-full bg-primary/20 blur-sm animate-pulse-glow" />
-            <div className="absolute bottom-4 right-[15%] w-16 h-1 rounded-full bg-secondary/20 blur-sm animate-pulse-glow" />
-
-            {/* Battle Intro Animation */}
+            {/* Battle Intro */}
             <AnimatePresence>
               {phase === "intro" && (
                 <motion.div
@@ -293,19 +287,12 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
 
             {/* Player Robot */}
             <motion.div
-              className={`relative z-20 ${playerAnim} thruster-glow-cyan`}
-              initial={{ x: -100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1, y: [-8, -20, -12, -18, -8], rotate: [-2, 1, -1, 2, -2] }}
-              transition={{ x: { duration: 0.8 }, opacity: { duration: 0.8 }, y: { repeat: Infinity, duration: 4, ease: "easeInOut" }, rotate: { repeat: Infinity, duration: 4, ease: "easeInOut" } }}
+              className="relative z-20"
+              initial={{ x: -80, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
             >
-              <motion.div
-                className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-8 rounded-full"
-                style={{ background: "linear-gradient(180deg, hsl(195 100% 60% / 0.8), hsl(195 100% 50% / 0.2), transparent)" }}
-                animate={{ height: [12, 22, 14, 20, 12], opacity: [0.6, 1, 0.7, 0.9, 0.6] }}
-                transition={{ repeat: Infinity, duration: 0.8, ease: "easeInOut" }}
-              />
-              <img src={playerRobotImg} alt="Player Robot" className="w-32 h-32 md:w-40 md:h-40 object-contain" />
-              {showShield === "player" && <div className="absolute inset-[-12px]"><ShieldEffect /></div>}
+              <AnimatedRobot mood={playerRobotMood} size={140} variant="player" />
             </motion.div>
 
             {/* Status Badge */}
@@ -332,7 +319,7 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
               </AnimatePresence>
               <motion.span
                 className="font-display text-xs text-muted-foreground tracking-[0.3em]"
-                animate={{ opacity: [0.4, 0.8, 0.4] }}
+                animate={{ opacity: [0.3, 0.7, 0.3] }}
                 transition={{ repeat: Infinity, duration: 2 }}
               >
                 VS
@@ -341,19 +328,12 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
 
             {/* AI Robot */}
             <motion.div
-              className={`relative z-20 ${aiAnim} thruster-glow-orange`}
-              initial={{ x: 100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1, y: [-10, -22, -14, -20, -10], rotate: [2, -1, 1, -2, 2] }}
-              transition={{ x: { duration: 0.8 }, opacity: { duration: 0.8 }, y: { repeat: Infinity, duration: 3.5, ease: "easeInOut" }, rotate: { repeat: Infinity, duration: 3.5, ease: "easeInOut" } }}
+              className="relative z-20"
+              initial={{ x: 80, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
             >
-              <motion.div
-                className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-8 rounded-full"
-                style={{ background: "linear-gradient(180deg, hsl(25 95% 60% / 0.8), hsl(0 80% 55% / 0.3), transparent)" }}
-                animate={{ height: [14, 24, 16, 22, 14], opacity: [0.7, 1, 0.8, 0.95, 0.7] }}
-                transition={{ repeat: Infinity, duration: 0.7, ease: "easeInOut" }}
-              />
-              <img src={aiRobotImg} alt="AI Robot" className="w-32 h-32 md:w-40 md:h-40 object-contain" />
-              {showShield === "ai" && <div className="absolute inset-[-12px]"><ShieldEffect /></div>}
+              <AnimatedRobot mood={aiRobotMood} size={140} variant="ai" />
             </motion.div>
 
             {/* Effects */}
@@ -376,13 +356,8 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
           </motion.div>
 
           {/* Robot Companion */}
-          <motion.div
-            className="mt-3"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <RobotCompanion mood={robotMood} message={robotMsg} />
+          <motion.div className="mt-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+            <RobotCompanion mood={robotMood} message={robotMsg} size="sm" />
           </motion.div>
 
           {/* Code Challenge */}
@@ -398,13 +373,8 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
                 {challenge.codeTemplate.replace("___", "▯▯▯")}
               </pre>
               {showHint && (
-                <motion.p
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="text-xs text-accent mb-2 font-body"
-                >
-                  💡 Hint: {challenge.hint}
-                </motion.p>
+                <motion.p initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                  className="text-xs text-accent mb-2 font-body">💡 Hint: {challenge.hint}</motion.p>
               )}
               <div className="flex gap-2">
                 <input
@@ -429,37 +399,23 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
           initial={{ x: 30, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.3 }}
-          style={{ boxShadow: "0 0 20px hsl(195 100% 50% / 0.03)" }}
         >
           <h3 className="font-display text-sm text-primary mb-3 tracking-wider"
-            style={{ textShadow: "0 0 15px hsl(195 100% 50% / 0.3)" }}>
-            BATTLE LOG
-          </h3>
+            style={{ textShadow: "0 0 15px hsl(195 100% 50% / 0.3)" }}>BATTLE LOG</h3>
           <div className="flex-1 space-y-2 overflow-y-auto">
             <AnimatePresence>
               {battleLog.map((log, i) => (
-                <motion.div
-                  key={`${i}-${log}`}
-                  initial={{ x: 20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  className="text-xs font-mono text-muted-foreground border-l-2 border-border pl-2 py-1"
-                >
-                  {log}
-                </motion.div>
+                <motion.div key={`${i}-${log}`} initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
+                  className="text-xs font-mono text-muted-foreground border-l-2 border-border pl-2 py-1">{log}</motion.div>
               ))}
             </AnimatePresence>
             {battleLog.length === 0 && (
-              <motion.p
-                className="text-xs text-muted-foreground italic"
-                animate={{ opacity: [0.4, 0.8, 0.4] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-              >
+              <motion.p className="text-xs text-muted-foreground italic"
+                animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ repeat: Infinity, duration: 2 }}>
                 Initializing battle systems...
               </motion.p>
             )}
           </div>
-
-          {/* Level Info */}
           <div className="mt-4 pt-3 border-t border-border">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-secondary text-lg">🏆</span>
@@ -467,14 +423,8 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
             </div>
             <div className="flex gap-1">
               {Array.from({ length: 3 }).map((_, i) => (
-                <motion.span
-                  key={i}
-                  className={`text-lg ${i < level ? "opacity-100" : "opacity-30"}`}
-                  animate={i < level ? { scale: [1, 1.2, 1] } : {}}
-                  transition={{ repeat: Infinity, duration: 2, delay: i * 0.3 }}
-                >
-                  ⭐
-                </motion.span>
+                <motion.span key={i} className={`text-lg ${i < level ? "opacity-100" : "opacity-30"}`}
+                  animate={i < level ? { scale: [1, 1.2, 1] } : {}} transition={{ repeat: Infinity, duration: 2, delay: i * 0.3 }}>⭐</motion.span>
               ))}
             </div>
           </div>
