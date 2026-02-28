@@ -5,6 +5,10 @@ import ParticleField from "./ParticleField";
 import RobotCompanion from "./RobotCompanion";
 import AnimatedRobot from "./AnimatedRobot";
 import GlowButton from "./GlowButton";
+import {
+  DebrisField, ShockwaveRing, GroundCrack, SmokeCloud,
+  EnergyShield, WeaponCharge, ExplosionFlash, HeatDistortion, DustImpact,
+} from "./BattleEffects";
 import { getAIChallenge, stolenCodeRewards, type Challenge } from "@/data/challenges";
 import { useSoundEngine } from "@/hooks/useSoundEngine";
 import type { RobotMood } from "./AnimatedRobot";
@@ -22,8 +26,8 @@ const aiDamageRange = { easy: [5, 10], medium: [8, 15], hard: [12, 20] };
 
 /* ---------- Spark Particles ---------- */
 const SparkParticles = ({ side, color }: { side: "left" | "right"; color: "cyan" | "orange" }) => {
-  const sparks = useMemo(() => Array.from({ length: 14 }).map((_, i) => ({
-    id: i, x: (Math.random() - 0.5) * 160, y: (Math.random() - 0.5) * 160,
+  const sparks = useMemo(() => Array.from({ length: 18 }).map((_, i) => ({
+    id: i, x: (Math.random() - 0.5) * 200, y: (Math.random() - 0.5) * 200,
     size: Math.random() * 6 + 2, delay: Math.random() * 0.15, rotation: Math.random() * 360,
   })), []);
 
@@ -46,10 +50,88 @@ const EnergyBeam = ({ direction }: { direction: "left-to-right" | "right-to-left
     className={`absolute top-1/2 -translate-y-1/2 rounded-full ${direction === "right-to-left" ? "energy-beam-orange" : "energy-beam"}`}
     style={{ [direction === "left-to-right" ? "left" : "right"]: "25%", zIndex: 35, height: "3px" }}
     initial={{ width: 0, opacity: 0 }}
-    animate={{ width: "50%", opacity: [0, 1, 1, 0], height: ["3px", "8px", "3px"] }}
+    animate={{ width: "50%", opacity: [0, 1, 1, 0], height: ["3px", "12px", "6px", "3px"] }}
     transition={{ duration: 0.5, ease: "easeInOut" }}
   />
 );
+
+/* ---------- War Intro Sequence ---------- */
+const WarIntro = ({ onComplete, variant }: { onComplete: () => void; variant: "player" | "ai" }) => {
+  const [phase, setPhase] = useState(0);
+
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => setPhase(1), 500),   // Dark, flickering lights
+      setTimeout(() => setPhase(2), 1500),  // Robot activation
+      setTimeout(() => setPhase(3), 3000),  // Energy core power up
+      setTimeout(() => setPhase(4), 4000),  // FIGHT text
+      setTimeout(() => onComplete(), 5000), // Start battle
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [onComplete]);
+
+  return (
+    <motion.div className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden"
+      initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }}>
+      {/* Dark background with flickering */}
+      <motion.div className="absolute inset-0 bg-background"
+        animate={{ opacity: phase < 2 ? [0.95, 1, 0.9, 1] : 0.7 }}
+        transition={{ repeat: phase < 2 ? Infinity : 0, duration: 0.3 }} />
+
+      {/* Sparks falling */}
+      {phase >= 1 && Array.from({ length: 12 }).map((_, i) => (
+        <motion.div key={`intro-spark-${i}`}
+          className="absolute w-1 h-1 rounded-full"
+          style={{
+            background: "hsl(45 100% 60%)",
+            boxShadow: "0 0 4px hsl(45 100% 60%)",
+            left: `${10 + Math.random() * 80}%`,
+            top: "-5%",
+          }}
+          animate={{ y: [0, window.innerHeight * 1.2], opacity: [1, 0.8, 0] }}
+          transition={{ duration: 1.5 + Math.random(), delay: i * 0.15, ease: "easeIn" }}
+        />
+      ))}
+
+      {/* Robot silhouette emerging */}
+      {phase >= 2 && (
+        <motion.div className="relative z-10"
+          initial={{ scale: 0.3, opacity: 0, y: 50 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}>
+          <AnimatedRobot mood="excited" size={200} variant="player" />
+        </motion.div>
+      )}
+
+      {/* Energy core burst */}
+      {phase >= 3 && (
+        <motion.div className="absolute inset-0 z-5 pointer-events-none"
+          style={{
+            background: `radial-gradient(circle at 50% 50%, hsl(195 100% 50% / 0.15), transparent 50%)`,
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 0.8, 0.3], scale: [0.5, 1.5, 1] }}
+          transition={{ duration: 1 }} />
+      )}
+
+      {/* FIGHT text */}
+      {phase >= 4 && (
+        <motion.div className="absolute inset-0 z-20 flex items-center justify-center">
+          <motion.span className="font-display text-6xl md:text-8xl text-primary"
+            style={{ textShadow: "0 0 60px hsl(195 100% 50% / 0.8), 0 0 120px hsl(195 100% 50% / 0.4)" }}
+            initial={{ scale: 4, opacity: 0 }}
+            animate={{ scale: 1, opacity: [0, 1, 1, 0] }}
+            transition={{ duration: 0.8 }}>
+            ⚔️ FIGHT! ⚔️
+          </motion.span>
+        </motion.div>
+      )}
+
+      {/* Scan lines */}
+      <div className="absolute inset-0 scanline opacity-30 pointer-events-none z-30" />
+    </motion.div>
+  );
+};
 
 /* ---------- Main Component ---------- */
 const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: BattleArenaProps) => {
@@ -69,43 +151,84 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
   const [robotMsg, setRobotMsg] = useState("Systems online. Scanning opponent... 🤖");
   const [playerRobotMood, setPlayerRobotMood] = useState<RobotMood>("idle");
   const [aiRobotMood, setAiRobotMood] = useState<RobotMood>("idle");
+
+  // Animation states
   const [showBeam, setShowBeam] = useState<"left-to-right" | "right-to-left" | null>(null);
   const [showSparks, setShowSparks] = useState<{ side: "left" | "right"; color: "cyan" | "orange" } | null>(null);
   const [screenShake, setScreenShake] = useState(false);
+
+  // War effects
+  const [showDebris, setShowDebris] = useState<{ side: "left" | "right" } | null>(null);
+  const [showShockwave, setShowShockwave] = useState<{ side: "left" | "right"; color: "cyan" | "orange" } | null>(null);
+  const [showGroundCrack, setShowGroundCrack] = useState<{ side: "left" | "right" } | null>(null);
+  const [showSmoke, setShowSmoke] = useState<{ side: "left" | "right" } | null>(null);
+  const [showWeaponCharge, setShowWeaponCharge] = useState<"left" | "right" | null>(null);
+  const [showFlash, setShowFlash] = useState(false);
+  const [showHeat, setShowHeat] = useState(false);
+  const [showDust, setShowDust] = useState<{ side: "left" | "right" } | null>(null);
+  const [playerShield, setPlayerShield] = useState(false);
+  const [aiShield, setAiShield] = useState(false);
+  const [playerRecoil, setPlayerRecoil] = useState<"left" | "right" | null>(null);
+  const [aiRecoil, setAiRecoil] = useState<"left" | "right" | null>(null);
+
+  // Cinematic camera
+  const [cameraZoom, setCameraZoom] = useState(1);
+  const [cameraX, setCameraX] = useState(0);
+  const [slowMo, setSlowMo] = useState(false);
+
+  const playerDamageLevel = 1 - playerHP / maxPlayerHP;
+  const aiDamageLevel = 1 - aiHP / maxAiHP;
 
   const addLog = useCallback((msg: string) => {
     setBattleLog(prev => [...prev.slice(-6), msg]);
   }, []);
 
-  // Start/stop battle music
-  useEffect(() => {
-    startBattleMusic();
-    return () => stopBattleMusic();
-  }, []);
+  useEffect(() => { startBattleMusic(); return () => stopBattleMusic(); }, []);
 
-  // Adjust music intensity based on HP
   useEffect(() => {
     const hpRatio = playerHP / maxPlayerHP;
     setMusicIntensity(hpRatio < 0.3 ? 1.0 : hpRatio < 0.6 ? 0.7 : 0.4);
   }, [playerHP, maxPlayerHP]);
 
-  // Battle intro
+  // Distant explosions ambient
   useEffect(() => {
-    if (phase === "intro") {
-      setPlayerRobotMood("thinking");
-      setAiRobotMood("idle");
-      sounds.fightStart();
-      const t = setTimeout(() => {
-        setRobotMsg("Enemy detected! Prepare for combat! ⚡");
-        setRobotMood("worried");
-        setAiRobotMood("excited");
-        setTimeout(() => setPhase("ai-attack"), 1500);
-      }, 1500);
-      return () => clearTimeout(t);
+    if (phase === "player-turn" || phase === "ai-attack") {
+      const interval = setInterval(() => sounds.distantExplosion(), 5000 + Math.random() * 5000);
+      return () => clearInterval(interval);
     }
   }, [phase]);
 
-  // AI attacks first
+  // War intro complete
+  const handleIntroComplete = useCallback(() => {
+    sounds.fightStart();
+    setPhase("ai-attack");
+  }, [sounds]);
+
+  // Helper to trigger full impact effects
+  const triggerImpact = (side: "left" | "right", color: "cyan" | "orange") => {
+    setShowSparks({ side, color });
+    setShowDebris({ side });
+    setShowShockwave({ side, color });
+    setShowGroundCrack({ side });
+    setShowSmoke({ side });
+    setShowDust({ side });
+    setShowFlash(true);
+    setShowHeat(true);
+    setScreenShake(true);
+    if (side === "left") { setPlayerRecoil("left"); } else { setAiRecoil("right"); }
+
+    sounds.heavyImpact(side);
+
+    setTimeout(() => {
+      setShowSparks(null); setShowDebris(null); setShowShockwave(null);
+      setShowFlash(false); setShowHeat(false); setShowDust(null);
+      setScreenShake(false);
+      setPlayerRecoil(null); setAiRecoil(null);
+    }, 800);
+    setTimeout(() => { setShowSmoke(null); setShowGroundCrack(null); }, 2000);
+  };
+
+  // AI attacks
   useEffect(() => {
     if (phase !== "ai-attack") return;
     const timer = setTimeout(() => {
@@ -113,26 +236,44 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
       const dmg = Math.floor(Math.random() * (max - min + 1)) + min;
 
       setAiRobotMood("excited");
+      // Weapon charge
+      setShowWeaponCharge("right");
+      sounds.weaponCharge(0.6);
+      setCameraZoom(1.1);
+      setCameraX(15);
+
       setTimeout(() => {
+        setShowWeaponCharge(null);
         setShowBeam("right-to-left");
         sounds.beam("right");
+        setCameraZoom(1);
+        setCameraX(0);
+
         setTimeout(() => {
           setShowBeam(null);
-          setShowSparks({ side: "left", color: "orange" });
-          sounds.impact("left");
+          triggerImpact("left", "orange");
           setPlayerRobotMood("worried");
-          setScreenShake(true);
+
+          // Critical hit slow-mo
+          const isCritical = dmg >= max - 2;
+          if (isCritical) {
+            setSlowMo(true);
+            sounds.slowMo();
+            setTimeout(() => setSlowMo(false), 600);
+          }
+
           setPlayerHP(prev => {
             const newHP = Math.max(0, prev - dmg);
             if (newHP <= 0) {
               setRobotMood("worried");
               setRobotMsg("No... our systems are failing! 💔");
               setPlayerRobotMood("confused");
-              setTimeout(() => setPhase("defeat"), 800);
+              sounds.explosion();
+              setTimeout(() => setPhase("defeat"), 1200);
             }
             return newHP;
           });
-          addLog(`⚔️ AI deals ${dmg} damage!`);
+          addLog(`⚔️ AI deals ${dmg} damage!${dmg >= max - 2 ? " 💥 CRITICAL!" : ""}`);
           if (playerHP - dmg <= maxPlayerHP * 0.3 && playerHP - dmg > 0) {
             setRobotMood("worried");
             setRobotMsg("Shields critical! Focus your code! 🛡️");
@@ -141,8 +282,7 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
           setTimeout(() => {
             setAiRobotMood("idle");
             setPlayerRobotMood("idle");
-            setShowSparks(null);
-            setScreenShake(false);
+            sounds.coolingVent(0.6);
             if (playerHP - dmg > 0) {
               setRobotMood("thinking");
               setRobotMsg("Analyzing... Your turn, Commander! 🎯");
@@ -153,10 +293,10 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
                 setPhase("player-turn");
               });
             }
-          }, 700);
+          }, 900);
         }, 400);
-      }, 600);
-    }, 1000);
+      }, 700);
+    }, 1200);
     return () => clearTimeout(timer);
   }, [phase, difficulty, language, addLog, playerHP, maxPlayerHP]);
 
@@ -169,41 +309,60 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
       setRobotMood("happy");
       setRobotMsg("Perfect code! Firing weapons! 🔥");
       setPlayerRobotMood("excited");
+
+      // Weapon charge + cinematic zoom
+      setShowWeaponCharge("left");
+      sounds.weaponCharge(-0.6);
+      setCameraZoom(1.15);
+      setCameraX(-20);
+
       setTimeout(() => {
+        setShowWeaponCharge(null);
         setShowBeam("left-to-right");
         sounds.beam("left");
+        setCameraZoom(1);
+        setCameraX(0);
+
         setTimeout(() => {
           setShowBeam(null);
-          setShowSparks({ side: "right", color: "cyan" });
-          sounds.impact("right");
+          triggerImpact("right", "cyan");
           setAiRobotMood("worried");
-          setScreenShake(true);
+
+          // Slow-mo on kill shot
+          const isKillShot = aiHP - challenge.damage <= 0;
+          if (isKillShot) {
+            setSlowMo(true);
+            sounds.slowMo();
+            setTimeout(() => setSlowMo(false), 800);
+          }
+
           setAiHP(prev => {
             const newHP = Math.max(0, prev - challenge.damage);
             addLog(`💥 You deal ${challenge.damage} damage!`);
             if (newHP <= 0) {
+              sounds.explosion();
               setRobotMood("celebrating");
               setRobotMsg("VICTORY! Enemy destroyed! 🏆🎉");
               setPlayerRobotMood("celebrating");
               setAiRobotMood("confused");
               const rewards = stolenCodeRewards[language];
               const reward = rewards[Math.floor(Math.random() * rewards.length)];
-              setTimeout(() => onVictory(reward), 1200);
+              setTimeout(() => onVictory(reward), 1500);
             } else {
               setRobotMood("encouraging");
               setRobotMsg("Great hit! Keep the pressure on! 💪");
               setPlayerRobotMood("happy");
+              sounds.coolingVent(-0.6);
               setTimeout(() => {
                 setPlayerRobotMood("idle");
                 setAiRobotMood("idle");
                 setPhase("ai-attack");
-              }, 800);
+              }, 1000);
             }
             return newHP;
           });
-          setTimeout(() => { setShowSparks(null); setScreenShake(false); }, 600);
         }, 400);
-      }, 500);
+      }, 700);
       setFailCount(0);
     } else {
       sounds.wrong();
@@ -214,10 +373,7 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
       setPlayerHP(prev => Math.max(0, prev - 5));
       setRobotMood("encouraging");
       setRobotMsg(failCount >= 1 ? "Here's a hint to help! Don't give up! 💡" : "Not quite! Try again, you're close! 🤔");
-      setFailCount(prev => {
-        if (prev + 1 >= 2) setShowHint(true);
-        return prev + 1;
-      });
+      setFailCount(prev => { if (prev + 1 >= 2) setShowHint(true); return prev + 1; });
       setTimeout(() => { setPlayerRobotMood("idle"); setAiRobotMood("idle"); }, 800);
       setAnswer("");
     }
@@ -228,6 +384,16 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
   return (
     <div className="min-h-screen bg-background p-4 flex flex-col relative">
       <ParticleField variant="battle" />
+
+      {/* Slow-mo overlay */}
+      <AnimatePresence>
+        {slowMo && (
+          <motion.div className="fixed inset-0 z-[100] pointer-events-none"
+            style={{ background: "radial-gradient(circle, transparent 30%, hsl(220 50% 5% / 0.5) 100%)" }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }} />
+        )}
+      </AnimatePresence>
 
       {/* Header */}
       <motion.div className="text-center mb-4 relative z-10" initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
@@ -251,38 +417,32 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
             <HealthBar current={aiHP} max={maxAiHP} label="AI-BOT" variant="ai" />
           </div>
 
-          {/* Robot Battle View */}
+          {/* Robot Battle View — Cinematic Camera */}
           <motion.div
-            className="flex-1 flex items-center justify-between relative min-h-[280px] rounded-lg bg-arena overflow-hidden arena-grid-floor px-6"
-            animate={screenShake ? { x: [0, -10, 10, -6, 6, 0], y: [0, 5, -5, 3, -3, 0] } : {}}
-            transition={{ duration: 0.4 }}
+            className="flex-1 flex items-center justify-between relative min-h-[300px] rounded-lg bg-arena overflow-hidden arena-grid-floor px-6"
+            animate={{
+              scale: cameraZoom,
+              x: cameraX,
+              ...(screenShake ? { x: [cameraX, cameraX - 12, cameraX + 12, cameraX - 8, cameraX + 8, cameraX], y: [0, 6, -6, 4, -4, 0] } : {}),
+            }}
+            transition={screenShake ? { duration: 0.5 } : { type: "spring", stiffness: 80, damping: 20 }}
           >
             <div className="scanline absolute inset-0 pointer-events-none z-10" />
             <motion.div className="absolute inset-0 pointer-events-none"
               style={{ background: "radial-gradient(ellipse at 50% 80%, hsl(195 100% 50% / 0.04), transparent 60%)" }}
               animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 3 }} />
 
-            {/* Battle Intro */}
+            {/* War Intro */}
             <AnimatePresence>
-              {phase === "intro" && (
-                <motion.div className="absolute inset-0 z-50 flex items-center justify-center"
-                  initial={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <motion.span className="font-display text-4xl md:text-6xl text-primary"
-                    style={{ textShadow: "0 0 40px hsl(195 100% 50% / 0.8)" }}
-                    initial={{ scale: 3, opacity: 0 }}
-                    animate={{ scale: 1, opacity: [0, 1, 1, 0] }}
-                    transition={{ duration: 1.5 }}>
-                    FIGHT!
-                  </motion.span>
-                </motion.div>
-              )}
+              {phase === "intro" && <WarIntro onComplete={handleIntroComplete} variant="player" />}
             </AnimatePresence>
 
             {/* Player Robot */}
             <motion.div className="relative z-20"
               initial={{ x: -80, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.6, ease: "easeOut" }}>
-              <AnimatedRobot mood={playerRobotMood} size={140} variant="player" />
+              <AnimatedRobot mood={playerRobotMood} size={150} variant="player"
+                damageLevel={playerDamageLevel} showShield={playerShield} recoilDirection={playerRecoil} />
             </motion.div>
 
             {/* Status Badge */}
@@ -311,26 +471,21 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
             <motion.div className="relative z-20"
               initial={{ x: 80, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.6, ease: "easeOut" }}>
-              <AnimatedRobot mood={aiRobotMood} size={140} variant="ai" />
+              <AnimatedRobot mood={aiRobotMood} size={150} variant="ai"
+                damageLevel={aiDamageLevel} showShield={aiShield} recoilDirection={aiRecoil} />
             </motion.div>
 
-            {/* Effects */}
-            <AnimatePresence>
-              {showBeam && <EnergyBeam key="beam" direction={showBeam} />}
-            </AnimatePresence>
-            <AnimatePresence>
-              {showSparks && <SparkParticles key="sparks" side={showSparks.side} color={showSparks.color} />}
-            </AnimatePresence>
-            <AnimatePresence>
-              {showSparks && (
-                <>
-                  <motion.div key="ring1" className={`absolute z-30 w-24 h-24 rounded-full border-2 ${showSparks.color === "cyan" ? "border-primary/60" : "border-secondary/60"} ${showSparks.side === "left" ? "left-[18%]" : "right-[18%]"} top-1/2 -translate-y-1/2`}
-                    initial={{ scale: 0, opacity: 1 }} animate={{ scale: 2.5, opacity: 0 }} transition={{ duration: 0.6 }} />
-                  <motion.div key="ring2" className={`absolute z-30 w-16 h-16 rounded-full border ${showSparks.color === "cyan" ? "border-primary/40" : "border-secondary/40"} ${showSparks.side === "left" ? "left-[20%]" : "right-[20%]"} top-1/2 -translate-y-1/2`}
-                    initial={{ scale: 0, opacity: 1 }} animate={{ scale: 3, opacity: 0 }} transition={{ duration: 0.7, delay: 0.1 }} />
-                </>
-              )}
-            </AnimatePresence>
+            {/* All Battle Effects */}
+            <AnimatePresence>{showBeam && <EnergyBeam key="beam" direction={showBeam} />}</AnimatePresence>
+            <AnimatePresence>{showSparks && <SparkParticles key="sparks" side={showSparks.side} color={showSparks.color} />}</AnimatePresence>
+            {showDebris && <DebrisField active side={showDebris.side} intensity={1.2} />}
+            {showShockwave && <ShockwaveRing active side={showShockwave.side} color={showShockwave.color} />}
+            {showGroundCrack && <GroundCrack active side={showGroundCrack.side} />}
+            {showSmoke && <SmokeCloud active side={showSmoke.side} />}
+            {showDust && <DustImpact active side={showDust.side} />}
+            {showWeaponCharge && <WeaponCharge active side={showWeaponCharge} />}
+            <ExplosionFlash active={showFlash} />
+            <HeatDistortion active={showHeat} />
           </motion.div>
 
           {/* Robot Companion */}
@@ -352,14 +507,12 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
                   className="text-xs text-accent mb-2 font-body">💡 Hint: {challenge.hint}</motion.p>
               )}
               <div className="flex gap-2">
-                <input
-                  value={answer}
+                <input value={answer}
                   onChange={e => { setAnswer(e.target.value); sounds.type(); }}
                   onKeyDown={e => e.key === "Enter" && submitAnswer()}
                   placeholder="Type your answer..."
                   className="flex-1 px-3 py-2 rounded font-mono text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-                  autoFocus
-                />
+                  autoFocus />
                 <GlowButton variant="primary" size="sm" onClick={submitAnswer}>
                   Execute ⚡
                 </GlowButton>
@@ -383,19 +536,30 @@ const BattleArena = ({ language, difficulty, level, onVictory, onDefeat }: Battl
             {battleLog.length === 0 && (
               <motion.p className="text-xs text-muted-foreground italic"
                 animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ repeat: Infinity, duration: 2 }}>
-                Initializing battle systems...
+                Initializing war systems...
               </motion.p>
             )}
           </div>
           <div className="mt-4 pt-3 border-t border-border">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-secondary text-lg">🏆</span>
-              <span className="font-display text-xs text-secondary tracking-wider">LEVEL {level}</span>
+            {/* Damage indicators */}
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-secondary text-lg">🏆</span>
+                <span className="font-display text-xs text-secondary tracking-wider">LEVEL {level}</span>
+              </div>
+              {playerDamageLevel > 0.5 && (
+                <motion.span className="text-xs text-destructive font-display tracking-wider"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ repeat: Infinity, duration: 0.8 }}>
+                  ⚠️ CRITICAL
+                </motion.span>
+              )}
             </div>
             <div className="flex gap-1">
               {Array.from({ length: 3 }).map((_, i) => (
                 <motion.span key={i} className={`text-lg ${i < level ? "opacity-100" : "opacity-30"}`}
-                  animate={i < level ? { scale: [1, 1.2, 1] } : {}} transition={{ repeat: Infinity, duration: 2, delay: i * 0.3 }}>⭐</motion.span>
+                  animate={i < level ? { scale: [1, 1.2, 1] } : {}}
+                  transition={{ repeat: Infinity, duration: 2, delay: i * 0.3 }}>⭐</motion.span>
               ))}
             </div>
           </div>
