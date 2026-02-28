@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { ReactNode, useState } from "react";
+import { useSoundEngine } from "@/hooks/useSoundEngine";
 
 interface GlowButtonProps {
   children: ReactNode;
@@ -11,6 +12,7 @@ interface GlowButtonProps {
 
 const GlowButton = ({ children, onClick, variant = "primary", className = "", size = "md" }: GlowButtonProps) => {
   const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null);
+  const { sounds } = useSoundEngine();
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -40,6 +42,7 @@ const GlowButton = ({ children, onClick, variant = "primary", className = "", si
   return (
     <motion.button
       onClick={handleClick}
+      onMouseEnter={() => sounds.hover()}
       className={`relative overflow-hidden rounded-lg font-display uppercase tracking-widest transition-all duration-300 ${sizeClasses} ${variantClasses} ${className}`}
       style={{ boxShadow: glowStyle }}
       whileHover={{ scale: 1.05, boxShadow: glowStyle.replace("0.4", "0.6").replace("0.15", "0.3") }}
@@ -47,7 +50,6 @@ const GlowButton = ({ children, onClick, variant = "primary", className = "", si
     >
       {children}
 
-      {/* Ripple */}
       {ripple && (
         <motion.span
           className="absolute rounded-full bg-foreground/20 pointer-events-none"
@@ -58,7 +60,6 @@ const GlowButton = ({ children, onClick, variant = "primary", className = "", si
         />
       )}
 
-      {/* Shimmer */}
       {variant !== "ghost" && (
         <motion.div
           className="absolute inset-0 pointer-events-none"

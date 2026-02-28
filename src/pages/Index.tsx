@@ -7,6 +7,7 @@ import CinematicIntro from "@/components/game/CinematicIntro";
 import RobotCompanion from "@/components/game/RobotCompanion";
 import AnimatedRobot from "@/components/game/AnimatedRobot";
 import GlowButton from "@/components/game/GlowButton";
+import { useSoundEngine } from "@/hooks/useSoundEngine";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -14,9 +15,18 @@ const Index = () => {
   const [showContent, setShowContent] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [robotMood, setRobotMood] = useState<"idle" | "happy" | "excited">("idle");
+  const { sounds, startAmbient, stopAmbient, unlock } = useSoundEngine();
+
+  // Unlock audio on first interaction
+  useEffect(() => {
+    const handler = () => { unlock(); startAmbient(); window.removeEventListener("click", handler); };
+    window.addEventListener("click", handler);
+    return () => { window.removeEventListener("click", handler); stopAmbient(); };
+  }, []);
 
   useEffect(() => {
     if (introComplete) {
+      sounds.introBoot();
       const t = setTimeout(() => setShowContent(true), 200);
       return () => clearTimeout(t);
     }
@@ -24,7 +34,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex flex-col items-center justify-center">
-      {/* Cinematic Intro */}
       <AnimatePresence>
         {!introComplete && <CinematicIntro onComplete={() => setIntroComplete(true)} />}
       </AnimatePresence>
@@ -66,7 +75,7 @@ const Index = () => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               className="mx-auto mb-6"
-              onMouseEnter={() => setRobotMood("excited")}
+              onMouseEnter={() => { setRobotMood("excited"); sounds.hover(); }}
               onMouseLeave={() => setRobotMood("idle")}
             >
               <AnimatedRobot mood={robotMood} size={130} variant="player" />
@@ -116,10 +125,10 @@ const Index = () => {
               transition={{ delay: 1 }}
               className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
             >
-              <GlowButton variant="primary" size="lg" onClick={() => navigate("/game")}>
+              <GlowButton variant="primary" size="lg" onClick={() => { sounds.click(); sounds.transition(); navigate("/game"); }}>
                 Play Now
               </GlowButton>
-              <GlowButton variant="ghost" size="lg" onClick={() => navigate("/game")}>
+              <GlowButton variant="ghost" size="lg" onClick={() => { sounds.click(); sounds.transition(); navigate("/game"); }}>
                 Guest Mode
               </GlowButton>
             </motion.div>
@@ -143,7 +152,7 @@ const Index = () => {
                     borderColor: hovered === item.id ? "hsl(195 100% 50% / 0.5)" : undefined,
                     boxShadow: hovered === item.id ? "0 0 20px hsl(195 100% 50% / 0.2)" : undefined,
                   }}
-                  onMouseEnter={() => { setHovered(item.id); setRobotMood("happy"); }}
+                  onMouseEnter={() => { setHovered(item.id); setRobotMood("happy"); sounds.hover(); }}
                   onMouseLeave={() => { setHovered(null); setRobotMood("idle"); }}
                   whileHover={{ y: -4, scale: 1.03 }}
                   initial={{ opacity: 0, y: 20 }}

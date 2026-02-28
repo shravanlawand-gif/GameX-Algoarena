@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import BattleArena from "@/components/game/BattleArena";
 import GlowButton from "@/components/game/GlowButton";
 import ParticleField from "@/components/game/ParticleField";
+import { useSoundEngine } from "@/hooks/useSoundEngine";
 
 type GameScreen = "language" | "difficulty" | "battle" | "victory" | "defeat";
 type Language = "python" | "sql" | "cpp";
@@ -36,6 +37,17 @@ const Game = () => {
   const [level, setLevel] = useState(1);
   const [stolenCodes, setStolenCodes] = useState<string[]>([]);
   const [lastReward, setLastReward] = useState("");
+  const { sounds, startAmbient, stopAmbient } = useSoundEngine();
+
+  useEffect(() => {
+    startAmbient();
+    return () => stopAmbient();
+  }, []);
+
+  const changeScreen = (next: GameScreen) => {
+    sounds.transition();
+    setScreen(next);
+  };
 
   if (screen === "battle") {
     return (
@@ -44,11 +56,15 @@ const Game = () => {
         difficulty={difficulty}
         level={level}
         onVictory={(code) => {
+          sounds.victory();
           setLastReward(code);
           setStolenCodes(prev => [...prev, code]);
           setScreen("victory");
         }}
-        onDefeat={() => setScreen("defeat")}
+        onDefeat={() => {
+          sounds.defeat();
+          setScreen("defeat");
+        }}
       />
     );
   }
@@ -75,7 +91,8 @@ const Game = () => {
                   initial={{ opacity: 0, x: -30 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 + i * 0.1 }}
-                  onClick={() => { setLanguage(lang.id); setScreen("difficulty"); }}
+                  onMouseEnter={() => sounds.hover()}
+                  onClick={() => { sounds.click(); setLanguage(lang.id); changeScreen("difficulty"); }}
                   className="arena-panel p-5 flex items-center gap-4 hover:neon-border transition-all duration-300 group cursor-pointer"
                   whileHover={{ x: 8, scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -97,7 +114,7 @@ const Game = () => {
               ))}
             </div>
             <button
-              onClick={() => navigate("/")}
+              onClick={() => { sounds.click(); navigate("/"); }}
               className="mt-6 text-sm text-muted-foreground hover:text-foreground transition-colors font-body"
             >
               ← Back to menu
@@ -122,7 +139,8 @@ const Game = () => {
                   initial={{ opacity: 0, x: 30 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 + i * 0.1 }}
-                  onClick={() => { setDifficulty(diff.id); setScreen("battle"); }}
+                  onMouseEnter={() => sounds.hover()}
+                  onClick={() => { sounds.click(); setDifficulty(diff.id); sounds.fightStart(); changeScreen("battle"); }}
                   className="arena-panel p-5 flex items-center justify-between hover:neon-border transition-all duration-300 cursor-pointer"
                   whileHover={{ x: -8, scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -144,7 +162,7 @@ const Game = () => {
               ))}
             </div>
             <button
-              onClick={() => setScreen("language")}
+              onClick={() => { sounds.click(); changeScreen("language"); }}
               className="mt-6 text-sm text-muted-foreground hover:text-foreground transition-colors font-body"
             >
               ← Change language
@@ -187,10 +205,10 @@ const Game = () => {
               <pre className="font-mono text-sm text-foreground bg-muted/50 p-2 rounded">{lastReward}</pre>
             </motion.div>
             <div className="flex gap-3 justify-center">
-              <GlowButton variant="primary" onClick={() => { setLevel(prev => prev + 1); setScreen("battle"); }}>
+              <GlowButton variant="primary" onClick={() => { sounds.click(); sounds.levelUp(); setLevel(prev => prev + 1); changeScreen("battle"); }}>
                 Next Level →
               </GlowButton>
-              <GlowButton variant="ghost" onClick={() => navigate("/")}>Menu</GlowButton>
+              <GlowButton variant="ghost" onClick={() => { sounds.click(); navigate("/"); }}>Menu</GlowButton>
             </div>
           </motion.div>
         )}
@@ -207,8 +225,8 @@ const Game = () => {
             </h2>
             <p className="text-muted-foreground font-body mb-6">The AI was too strong this time...</p>
             <div className="flex gap-3 justify-center">
-              <GlowButton variant="secondary" onClick={() => setScreen("battle")}>Retry</GlowButton>
-              <GlowButton variant="ghost" onClick={() => navigate("/")}>Menu</GlowButton>
+              <GlowButton variant="secondary" onClick={() => { sounds.click(); changeScreen("battle"); }}>Retry</GlowButton>
+              <GlowButton variant="ghost" onClick={() => { sounds.click(); navigate("/"); }}>Menu</GlowButton>
             </div>
           </motion.div>
         )}
