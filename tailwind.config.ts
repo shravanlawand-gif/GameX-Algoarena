@@ -2,7 +2,12 @@ import type { Config } from "tailwindcss";
 
 export default {
   darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  content: [
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
+  ],
   prefix: "",
   theme: {
     container: {
@@ -22,13 +27,35 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
-        secondary: { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
-        destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
-        muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
-        accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
-        popover: { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
-        card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        // Custom arena colors
         neon: {
           cyan: "hsl(var(--neon-cyan))",
           orange: "hsl(var(--neon-orange))",
@@ -54,10 +81,19 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
-        "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
-        "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
-        "fade-in": { "0%": { opacity: "0", transform: "translateY(10px)" }, "100%": { opacity: "1", transform: "translateY(0)" } },
-        "shake": {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        shake: {
           "0%, 100%": { transform: "translateX(0)" },
           "10%, 30%, 50%, 70%, 90%": { transform: "translateX(-8px)" },
           "20%, 40%, 60%, 80%": { transform: "translateX(8px)" },
@@ -78,7 +114,7 @@ export default {
           "0%, 100%": { filter: "brightness(1)" },
           "50%": { filter: "brightness(2) saturate(0)" },
         },
-        "float": {
+        float: {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-10px)" },
         },
@@ -90,7 +126,7 @@ export default {
           "0%": { opacity: "0", transform: "translateY(40px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
-        "explosion": {
+        explosion: {
           "0%": { transform: "scale(0)", opacity: "1" },
           "50%": { transform: "scale(1.5)", opacity: "0.8" },
           "100%": { transform: "scale(2)", opacity: "0" },
@@ -120,7 +156,7 @@ export default {
           "70%": { transform: "translateX(-100px) rotate(-5deg) scale(1.1)" },
           "100%": { transform: "translateX(0) rotate(0deg) scale(1)" },
         },
-        "recoil": {
+        recoil: {
           "0%": { transform: "translateX(0)" },
           "30%": { transform: "translateX(30px) rotate(8deg)" },
           "60%": { transform: "translateX(20px) rotate(-3deg)" },
@@ -137,19 +173,19 @@ export default {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.3s ease-out",
-        "shake": "shake 0.5s ease-in-out",
+        shake: "shake 0.5s ease-in-out",
         "attack-right": "attack-right 0.6s ease-in-out",
         "attack-left": "attack-left 0.6s ease-in-out",
         "damage-flash": "damage-flash 0.3s ease-in-out",
-        "float": "float 3s ease-in-out infinite",
+        float: "float 3s ease-in-out infinite",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "slide-up": "slide-up 0.5s ease-out",
-        "explosion": "explosion 0.5s ease-out forwards",
+        explosion: "explosion 0.5s ease-out forwards",
         "fly-hover": "fly-hover 3s ease-in-out infinite",
         "charge-up": "charge-up 0.8s ease-in-out",
         "dash-right": "dash-right 0.7s ease-in-out",
         "dash-left": "dash-left 0.7s ease-in-out",
-        "recoil": "recoil 0.5s ease-out",
+        recoil: "recoil 0.5s ease-out",
         "recoil-left": "recoil-left 0.5s ease-out",
       },
     },
