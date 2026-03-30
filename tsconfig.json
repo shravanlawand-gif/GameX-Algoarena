@@ -1,12 +1,4 @@
 {
-<<<<<<< HEAD
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ],
-=======
->>>>>>> f6def10fb834374b98c141a2597be89b6908b7e3
   "compilerOptions": {
     "allowJs": true,
     "noImplicitAny": false,
