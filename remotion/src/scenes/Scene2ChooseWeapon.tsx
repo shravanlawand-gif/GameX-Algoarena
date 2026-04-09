@@ -32,7 +32,7 @@ export const Scene2ChooseWeapon = () => {
           fontFamily,
           fontSize: 16,
           fontWeight: 700,
-          color: "hsl(25, 95%, 55%)",
+          color: "hsl(25, 66%, 50%)",
           letterSpacing: "0.3em",
           opacity: interpolate(titleSpring, [0, 1], [0, 1]),
           textShadow: "0 0 15px hsla(25, 95%, 55%, 0.5)",
