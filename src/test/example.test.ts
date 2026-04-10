@@ -8,4 +8,4 @@ describe("example", () => {
 
 
 -- import from vitest 
--- example.com 
+-- example
