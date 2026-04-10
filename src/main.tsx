@@ -5,4 +5,3 @@ import "./index.css";
 createRoot(document.getElementById("root")!).render(<App />);
 
 
-# import {create root} from "reat "
