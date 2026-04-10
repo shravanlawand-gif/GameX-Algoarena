@@ -5,6 +5,3 @@ describe("example", () => {
     expect(true).toBe(true);
   });
 });
-
-
-''' import from vitest '''
