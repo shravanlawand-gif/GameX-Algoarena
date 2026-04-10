@@ -45,7 +45,7 @@ const Index = () => {
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url(${heroBg})` }}
         initial={{ opacity: 0, scale: 1.1 }}
-        animate={showContent ? { opacity: 0.25, scale: 1 } : {}}
+        animate={showContent ? { opacity: 0.6, scale: 1 } : {}}
         transition={{ duration: 2, ease: "easeOut" }}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/20" />

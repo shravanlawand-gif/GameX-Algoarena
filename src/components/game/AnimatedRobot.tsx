@@ -11,11 +11,13 @@ interface AnimatedRobotProps {
   damageLevel?: number; // 0-1, how damaged
   showShield?: boolean;
   recoilDirection?: "left" | "right" | null;
+  action?: "idle" | "move" | "attack" | "hit";
 }
 
 const AnimatedRobot = ({
   mood = "idle", size = 160, variant = "player", className = "",
   damageLevel = 0, showShield = false, recoilDirection = null,
+  action = "idle", 
 }: AnimatedRobotProps) => {
   const [blinkState, setBlinkState] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -90,11 +92,36 @@ const AnimatedRobot = ({
         className="w-full h-full relative"
         animate={{
           y: [0, config.bobAmount, 0],
-          x: recoilX,
+
+          // ✅ NEW MOVEMENT SYSTEM
+          x:
+            action === "move"
+             ? variant === "player"
+              ? 80
+              : -80
+             : recoilX,
+
+          scale: action === "attack" ? 1.15 : 1,
+
           rotateX: recoilDirection ? 5 : 0,
-          rotateY: recoilDirection ? (recoilDirection === "left" ? -8 : 8) : 0,
-          rotateZ: recoilDirection ? (recoilDirection === "left" ? -3 : 3) : 0,
-        }}
+          rotateY:
+            action === "attack"
+              ? variant === "player"
+                ? 10
+                : -10
+              : recoilDirection
+              ? (recoilDirection === "left" ? -8 : 8)
+              : 0,
+
+          rotateZ:
+            action === "attack"
+             ? variant === "player"
+              ? 5
+              : -5
+            : recoilDirection
+            ? (recoilDirection === "left" ? -3 : 3)
+            : 0,
+     }}
         transition={{
           y: { repeat: Infinity, duration: config.bobSpeed, ease: "easeInOut" },
           x: { duration: 0.15, type: "spring", stiffness: 200 },
