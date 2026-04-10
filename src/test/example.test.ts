@@ -7,5 +7,4 @@ describe("example", () => {
 });
 
 
--- import from vitest 
--- example
+-- import from vitest
